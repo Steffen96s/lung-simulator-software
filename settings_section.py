@@ -26,7 +26,7 @@ class SettingsSection:
                     # Nur lesen, wenn die Verbindung hergestellt wurde
                     if SettingsSection.ser:
                         data = SettingsSection.ser.readline().decode('utf-8')
-                        print("Empfangene Daten:", repr(data))
+                        print("Empfangene daten: ", (data))
                         ScrollbarSection.update_text(data)
                         # Hier kannst du je nach empfangenen Daten Aktionen in deiner GUI auslösen
                 except serial.SerialException:
@@ -91,18 +91,33 @@ class ScrollbarSection:
         self.tk_textbox = customtkinter.CTkTextbox(frame, state="disabled", height=340, width=400, fg_color="black")
         self.tk_textbox.grid(row=3, column=1, padx=10, pady=10, sticky="nsew")
 
-    def update():
+    def update(self):
         print("update")
+        SettingsSection.ser.write(b'U') 
 
     @classmethod
     def update_text(cls, message):
+        def remove_null_bytes(input_str):
+            return input_str.replace('\x00', '')
         if cls.tk_textbox is not None:
-            current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            formatted_message = f"\n{current_datetime}: {message}\n"
             cls.tk_textbox.configure(state=tk.NORMAL)
+
+            print(f"Debug: message type: {type(message)}, value: {repr(message)}")
+
+            # Entferne Escape-Zeichen
+            cleaned_message = remove_null_bytes(message)
+
+            current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            formatted_message = f"\n{current_datetime}: {cleaned_message}\n"
+
+            print(f"Debug: formatted message: {repr(formatted_message)}")
+
             cls.tk_textbox.insert(tk.END, formatted_message)
             cls.tk_textbox.see(tk.END)
             cls.tk_textbox.configure(state=tk.DISABLED)
+
+
+
 
 class ControlSection:
     def __init__(self, frame):
