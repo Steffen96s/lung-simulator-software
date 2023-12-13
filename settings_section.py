@@ -252,6 +252,7 @@ class BreathingPatternSection:
 
     def apply_apnoe(self):
         print("apnoe läuft")
+        
         # SettingsSection.ser.write(b"freq-13")
         # SettingsSection.ser.write(b"vol-500")
         # print("sende 500")
@@ -265,6 +266,7 @@ class BreathingPatternSection:
 
     def apply_hypopnoe(self):
         print("hypopnoe läuft")
+        SettingsSection.ser.write(b"select-3")
 
     def apply_cheyne_stokes():
         print("cheyne_stokes")
@@ -296,5 +298,9 @@ class BreathingPatternSection:
             print(f"Fehler beim Verarbeiten der CSV-Datei: {str(e)}")
 
     def upload_data(self):
-        print("upload")
+        print("hi")
+        #SettingsSection.ser.write(b"feed")
+        #SettingsSection.ser.write(b"  0.00;  0.01;  0.05;  0.12;  0.22;  0.34;  0.48;  0.66;  0.86;  1.09;  1.34;  1.63;  1.93;  2.27;  2.63;  3.02;  3.43;  3.88;  4.34;  4.84;  5.36;  5.90;  6.47;  7.07;  7.70;  8.34;  9.02;  9.72; 10.45; 11.20; 11.97; 12.77; 13.60; 14.45; 15.33; 16.23; 17.15; 18.10; 19.07; 20.07; 21.09; 22.13; 23.20; 24.29; 25.41; 26.54; 27.70; 28.88; 30.09; 31.31; 32.56; 33.83; 35.12; 36.44; 37.77; 39.13; 40.50; 41.90; 43.32; 44.75; 46.21; 47.69; 49.18; 50.70; 52.23; 53.78; 55.36; 56.94; 58.55; 60.18; 61.82; 63.48; 65.15; 66.85; 68.56; 70.28; 72.02; 73.78; 75.55; 77.34; 79.14; 80.96; 82.79; 84.63; 86.49; 88.36; 90.24; 92.14; 94.05; 95.97; 97.90; 99.85;100.00!")
+
+
 
