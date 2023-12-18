@@ -32,6 +32,7 @@ class SettingsSection:
                 except serial.SerialException:
                     print("Fehler beim Lesen der seriellen Schnittstelle")
 
+
         self.settings_label = customtkinter.CTkLabel(frame, text="EINSTELLUNGEN")
         self.settings_label.grid(row=1, column=0, pady=10, padx=10, sticky="w")
 
@@ -248,28 +249,49 @@ class BreathingPatternSection:
             #ScrollbarSection.update_text(message)
             self.apply_hypopnoe()
         elif selected_pattern == "Cheyne-Stokes-Atmung":
+            ScrollbarSection.update_text("Die Cheyne-Stokes-Atmung wird abgespielt.")
             self.apply_cheyne_stokes()
 
     def apply_apnoe(self):
         print("apnoe läuft")
-        
-        # SettingsSection.ser.write(b"freq-13")
-        # SettingsSection.ser.write(b"vol-500")
-        # print("sende 500")
-        # time.sleep(10)
-        # print("10 sekunden um")
-        # SettingsSection.ser.write(b"vol-0")
-        # time.sleep(10)
-        # SettingsSection.ser.write(b"vol-700")
-        # SettingsSection.ser.write(b"freq-25")
-        # time.sleep(5)
+        SettingsSection.ser.write(b"vol-500")
+        time.sleep(0.1)
+        SettingsSection.ser.write(b"freq-13")
+        time.sleep(10)
+        print("10 sekunden um")
+        SettingsSection.ser.write(b"vol-0")
+        time.sleep(10)
+        SettingsSection.ser.write(b"freq-20")
+        time.sleep(0.1)
+        SettingsSection.ser.write(b"vol-650")
+
 
     def apply_hypopnoe(self):
         print("hypopnoe läuft")
         SettingsSection.ser.write(b"select-3")
 
-    def apply_cheyne_stokes():
-        print("cheyne_stokes")
+    def apply_cheyne_stokes(self):
+        print("Cheyne-Stokes läuft")
+
+        SettingsSection.ser.write(b"vol-550")
+        time.sleep(0.1)
+        SettingsSection.ser.write(b"freq-13")
+
+        for volume in range(600, -200, -100):
+            while True:
+                uart_data = SettingsSection.ser.readline().decode('utf-8').strip()
+                
+                if uart_data == "Neuer Atemzug":
+                    SettingsSection.ser.write(f"vol-{volume}".encode())
+                    break  # Die While-Schleife verlassen und zum nächsten Volumen gehen
+        for volume in range(0, 600, 100):
+            while True:
+                uart_data = SettingsSection.ser.readline().decode('utf-8').strip()
+                
+                if uart_data == "Neuer Atemzug":
+                    SettingsSection.ser.write(f"vol-{volume}".encode())
+                    break  
+        ScrollbarSection.update_text("Die Cheyne-Stokes-Atmung ist beendet.")
 
 
     def choose_data(self):
