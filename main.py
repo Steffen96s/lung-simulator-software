@@ -46,5 +46,6 @@ breathing_pattern_section = BreathingPatternSection(breathing_pattern_frame)
 
 ScrollbarSection.tk_textbox = scrollbar_section.tk_textbox
 SettingsSection.ser = settings_section.ser
+SettingsSection.breathingCounter = settings_section.breathingCounter
 
 root.mainloop()

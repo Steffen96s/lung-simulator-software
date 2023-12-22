@@ -17,7 +17,7 @@ import serial
 
 class SettingsSection:
     ser = None
-
+    breathingCounter = 0
     def __init__(self, frame):
 
         def serial_read_thread():
@@ -28,6 +28,9 @@ class SettingsSection:
                         data = SettingsSection.ser.readline().decode('utf-8')
                         print("Empfangene daten: ", (data))
                         ScrollbarSection.update_text(data)
+                        if "Neuer Atemzug" in data:
+                            SettingsSection.breathingCounter += 1
+                            print("Breathing Counter erhöht:", SettingsSection.breathingCounter)
                         # Hier kannst du je nach empfangenen Daten Aktionen in deiner GUI auslösen
                 except serial.SerialException:
                     print("Fehler beim Lesen der seriellen Schnittstelle")
@@ -128,7 +131,7 @@ class ControlSection:
         self.start_button = customtkinter.CTkButton(master=frame, text="Start", command=self.start_action)
         self.start_button.grid(row=2, column=0, padx=10, pady=10)
 
-        self.pause_button = customtkinter.CTkButton(master=frame, text="Pause", command=self.pause_action)
+        self.pause_button = customtkinter.CTkButton(master=frame, text="Stop", command=self.pause_action)
         self.pause_button.grid(row=2, column=1, padx=10, pady=10)
 
         self.placeholder = customtkinter.CTkLabel(frame, text="")
@@ -203,12 +206,13 @@ class ControlSection:
         SettingsSection.ser.write(f"vol-{value}".encode())
 
 class BreathingPatternSection:
+
     def __init__(self, frame):
         self.processed_data = []
         self.breathing_label = customtkinter.CTkLabel(master=frame, text="ATEMMUSTER")
         self.breathing_label.grid(row=1, column=0, pady=10, padx=10, sticky="w")
 
-        self.breathing_patterns = ["Apnoe", "Hypopnoe", "Cheyne-Stokes-Atmung"]  # Beispieloptionen
+        self.breathing_patterns = ["Standard", "Apnoe", "Hypopnoe", "Cheyne-Stokes-Atmung"]  # Beispieloptionen
         self.selected_breathing_pattern = customtkinter.StringVar()
 
         self.breathing_dropdown = customtkinter.CTkOptionMenu(
@@ -219,7 +223,7 @@ class BreathingPatternSection:
         )
         self.breathing_dropdown.grid(row=2, column=0, padx=10, pady=10, sticky="w")
 
-        self.apply_breathing_button = customtkinter.CTkButton(frame, text="Anwenden", command=self.apply_breathing, font=("", 12), height=24)
+        self.apply_breathing_button = customtkinter.CTkButton(frame, text="Anwenden", command=self.apply_breathing)
         self.apply_breathing_button.grid(row=2, column=1, padx=10, pady=10, sticky="w")
 
         self.placeholder = customtkinter.CTkLabel(frame, text="")
@@ -227,20 +231,25 @@ class BreathingPatternSection:
 
         self.data_button = customtkinter.CTkButton(frame, text="Datei auswählen", command=self.choose_data)
         self.data_button.grid(row=4, column=0, pady=10, padx=10, sticky="w")
+        
+        self.upload_button = customtkinter.CTkButton(frame, text="Hochladen", command=self.upload_data, state="normal")
+        self.upload_button.grid(row=6, column=0, pady=10, padx=10)
 
-        self.play_button = customtkinter.CTkButton(frame, text="Hochladen", command=self.upload_data, font=("", 12), height=24)
-        self.play_button.grid(row=4, column=1, pady=10, padx=10)
-
-        self.upload_label = customtkinter.CTkLabel(frame, text="Uploaded File:")
+        self.upload_label = customtkinter.CTkLabel(frame, text="Aktuelle Datei:")
         self.upload_label.grid(row=5, column=0, columnspan=2, pady=10, padx=10, sticky="w")
 
-        #self.uploaded_file_label = customtkinter.CTkLabel(frame, text="", font=("", 12))
-        #self.uploaded_file_label.grid(row=5, column=1, pady=10, padx=10, sticky="w")
+        self.uploaded_file_label = customtkinter.CTkLabel(frame, text="", font=("", 12))
+        self.uploaded_file_label.grid(row=5, column=1, pady=10, padx=10, sticky="w")
+
+        self.play_data_label = customtkinter.CTkButton(frame, text="Abspielen", command=self.play_data)
+        self.play_data_label.grid(row=6, column=1, pady=10, padx=10)
 
     def apply_breathing(self):
         selected_pattern = self.breathing_dropdown.get()
         print(f"Applying Breathing Pattern: {selected_pattern}")
-        if selected_pattern == "Apnoe":
+        if selected_pattern == "Standard":
+            self.apply_standard()
+        elif selected_pattern == "Apnoe":
             #message = f"Eine Apnoe von 10 Sekunden wird auf dem Lungensimulator abgespielt"
             #ScrollbarSection.update_text(message)
             self.apply_apnoe()
@@ -251,6 +260,9 @@ class BreathingPatternSection:
         elif selected_pattern == "Cheyne-Stokes-Atmung":
             ScrollbarSection.update_text("Die Cheyne-Stokes-Atmung wird abgespielt.")
             self.apply_cheyne_stokes()
+
+    def apply_standard(self):
+        SettingsSection.ser.write(b"select-2")
 
     def apply_apnoe(self):
         print("apnoe läuft")
@@ -263,12 +275,23 @@ class BreathingPatternSection:
         time.sleep(10)
         SettingsSection.ser.write(b"freq-20")
         time.sleep(0.1)
-        SettingsSection.ser.write(b"vol-650")
+        SettingsSection.ser.write(b"vol-600")
+        time.sleep(1)
+        SettingsSection.ser.write(b"freq-13")
 
 
     def apply_hypopnoe(self):
-        print("hypopnoe läuft")
-        SettingsSection.ser.write(b"select-3")
+        print("hypopnoe öäuft")
+        SettingsSection.ser.write(b"vol-500")
+        time.sleep(0.1)
+        SettingsSection.ser.write(b"freq-13")
+        time.sleep(10)
+        print("10 sekunden um")
+        SettingsSection.ser.write(b"vol-200")
+        time.sleep(10)
+        SettingsSection.ser.write(b"freq-13")
+        time.sleep(0.1)
+        SettingsSection.ser.write(b"vol-500")
 
     def apply_cheyne_stokes(self):
         print("Cheyne-Stokes läuft")
@@ -300,29 +323,43 @@ class BreathingPatternSection:
             self.upload_label.configure(text=file_path)
             if file_path:
                 file_name = os.path.basename(file_path)
-                self.upload_label.configure(text=f"Uploaded File: {file_name}")
+                self.upload_label.configure(text=f"Aktuelle Datei: {file_name}")
                 if file_path:
                     self.process_csv(file_path)
 
     def process_csv(self, file_path):
         try:
+            self.output_data= []
             with open(file_path, 'r') as file:
                 reader = csv.reader(file, delimiter=';')
                 for row in reader:
-                    processed_row = '; '.join([f'{float(value):.2f}'.replace(',', '.') for value in row])
+                    processed_row = ';'.join([f'{float(value):.2f}'.replace(',', '.') for value in row])
                     self.processed_data.append(processed_row)  # Hinzufügen der verarbeiteten Zeile zur Liste
                     print(f"Processed Row: {processed_row}")
 
                 # Zusätzliches: Daten gemäß den Anforderungen ausgeben
-                output_data = '; '.join(self.processed_data)
-                print(f"Output Data: {output_data}!")
+                self.output_data = ';'.join(self.processed_data)
+                print(f"Output Data: {self.output_data}!")
         except Exception as e:
             print(f"Fehler beim Verarbeiten der CSV-Datei: {str(e)}")
 
     def upload_data(self):
-        print("hi")
-        #SettingsSection.ser.write(b"feed")
-        #SettingsSection.ser.write(b"  0.00;  0.01;  0.05;  0.12;  0.22;  0.34;  0.48;  0.66;  0.86;  1.09;  1.34;  1.63;  1.93;  2.27;  2.63;  3.02;  3.43;  3.88;  4.34;  4.84;  5.36;  5.90;  6.47;  7.07;  7.70;  8.34;  9.02;  9.72; 10.45; 11.20; 11.97; 12.77; 13.60; 14.45; 15.33; 16.23; 17.15; 18.10; 19.07; 20.07; 21.09; 22.13; 23.20; 24.29; 25.41; 26.54; 27.70; 28.88; 30.09; 31.31; 32.56; 33.83; 35.12; 36.44; 37.77; 39.13; 40.50; 41.90; 43.32; 44.75; 46.21; 47.69; 49.18; 50.70; 52.23; 53.78; 55.36; 56.94; 58.55; 60.18; 61.82; 63.48; 65.15; 66.85; 68.56; 70.28; 72.02; 73.78; 75.55; 77.34; 79.14; 80.96; 82.79; 84.63; 86.49; 88.36; 90.24; 92.14; 94.05; 95.97; 97.90; 99.85;100.00!")
+        try:
+            SettingsSection.ser.write(b"feed")
+            time.sleep(0.1)
+            data_line = "" + "".join(map(str, self.output_data)) + "!"
+            print(type(data_line))
+            SettingsSection.ser.write(data_line.strip().encode())
+            self.upload_update_button_state("disabled")
+        except Exception as e:
+            ScrollbarSection.update_text("Datei konnte nicht hochgeladen werden.")
+
+    def play_data(self):
+        SettingsSection.ser.write(b"select-1")
+
+    def upload_update_button_state(self, states):
+        self.upload_button.configure(state = states)
+
 
 
 
