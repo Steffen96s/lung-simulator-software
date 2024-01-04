@@ -37,7 +37,7 @@ class SettingsSection:
 
 
         self.settings_label = customtkinter.CTkLabel(frame, text="EINSTELLUNGEN")
-        self.settings_label.grid(row=1, column=0, pady=10, padx=10, sticky="w")
+        self.settings_label.grid(row=1, column=0, pady=5, padx=10, sticky="w")
 
         # Initialisiere das Dropdown-Menü mit vorhandenen COM-Ports
         self.update_com_ports()
@@ -86,13 +86,13 @@ class ScrollbarSection:
     tk_textbox = None
     def __init__(self, frame):
 
-        self.scrollbar_section_label = customtkinter.CTkLabel(frame, text="STATUS REPORT")
-        self.scrollbar_section_label.grid(row=1, column=1, padx=10, pady=10, sticky="w")
+        self.scrollbar_section_label = customtkinter.CTkLabel(frame, text="STATUS")
+        self.scrollbar_section_label.grid(row=1, column=1, padx=10, pady=5, sticky="w")
 
-        self.update_button = customtkinter.CTkButton(frame, text="Update", command=self.update)
-        self.update_button.grid(row=2, column=1, padx=10, pady=10, sticky="w")
+        #self.update_label = customtkinter.CTkButton(frame, text="Update", command=self.update)
+        #self.update_label.grid(row=2, column=1, padx=10, pady=10, sticky="w")
 
-        self.tk_textbox = customtkinter.CTkTextbox(frame, state="disabled", height=340, width=400, fg_color="black")
+        self.tk_textbox = customtkinter.CTkTextbox(frame, state="disabled", height=435, width=400, fg_color="black")
         self.tk_textbox.grid(row=3, column=1, padx=10, pady=10, sticky="nsew")
 
     def update(self):
@@ -125,8 +125,8 @@ class ScrollbarSection:
 
 class ControlSection:
     def __init__(self, frame):
-        self.controlling_label = customtkinter.CTkLabel(master=frame, text="CONTROLLING")
-        self.controlling_label.grid(row=1, column=0, pady=10, padx=10, sticky="w")
+        self.controlling_label = customtkinter.CTkLabel(master=frame, text="STEUERUNG")
+        self.controlling_label.grid(row=1, column=0, pady=5, padx=10, sticky="w")
 
         self.start_button = customtkinter.CTkButton(master=frame, text="Start", command=self.start_action)
         self.start_button.grid(row=2, column=0, padx=10, pady=10)
@@ -178,14 +178,15 @@ class ControlSection:
         SettingsSection.ser.write(f"freq-{value}".encode()) 
 
     def create_volume_widgets(self, frame):
+        max_volume = 800
         self.volume_label = customtkinter.CTkLabel(frame, text="Atemvolumen", text_color="grey")
         self.volume_label.grid(row=9, column=0, columnspan=2, padx=10, sticky="w")
 
         self.volume_slider = customtkinter.CTkSlider(
             frame,
-            to=800,
+            to=int(max_volume * 0.92),
             from_=0,
-            number_of_steps=800,
+            number_of_steps=int(max_volume * 0.92),
             command=self.volume_slider_changed,
         )
         self.volume_slider.grid(row=10, columnspan=2, pady=10, sticky="w", padx=8)
@@ -209,8 +210,11 @@ class BreathingPatternSection:
 
     def __init__(self, frame):
         self.processed_data = []
-        self.breathing_label = customtkinter.CTkLabel(master=frame, text="ATEMMUSTER")
-        self.breathing_label.grid(row=1, column=0, pady=10, padx=10, sticky="w")
+        self.breathing_label = customtkinter.CTkLabel(master=frame, text="SIMULATION")
+        self.breathing_label.grid(row=1, column=0, pady=5, padx=10, sticky="w")
+
+        self.placeholder_label1 = customtkinter.CTkLabel(frame, text="Atemmuster", text_color="grey")
+        self.placeholder_label1.grid(row=2, padx=10, sticky="w")
 
         self.breathing_patterns = ["Standard", "Apnoe", "Hypopnoe", "Cheyne-Stokes-Atmung"]  # Beispieloptionen
         self.selected_breathing_pattern = customtkinter.StringVar()
@@ -221,28 +225,28 @@ class BreathingPatternSection:
             variable=self.selected_breathing_pattern,
             values=self.breathing_patterns
         )
-        self.breathing_dropdown.grid(row=2, column=0, padx=10, pady=10, sticky="w")
+        self.breathing_dropdown.grid(row=3, column=0, padx=10, pady=10, sticky="w")
 
         self.apply_breathing_button = customtkinter.CTkButton(frame, text="Anwenden", command=self.apply_breathing)
-        self.apply_breathing_button.grid(row=2, column=1, padx=10, pady=10, sticky="w")
+        self.apply_breathing_button.grid(row=3, column=1, padx=10, pady=10, sticky="w")
 
-        self.placeholder = customtkinter.CTkLabel(frame, text="")
-        self.placeholder.grid(row=3, pady=10)
+        self.placeholder_label2 = customtkinter.CTkLabel(frame, text="Datenimport", text_color="grey")
+        self.placeholder_label2.grid(row=4, padx=10, sticky="w")
 
         self.data_button = customtkinter.CTkButton(frame, text="Datei auswählen", command=self.choose_data)
-        self.data_button.grid(row=4, column=0, pady=10, padx=10, sticky="w")
+        self.data_button.grid(row=5, column=0, pady=10, padx=10, sticky="w")
         
         self.upload_button = customtkinter.CTkButton(frame, text="Hochladen", command=self.upload_data, state="normal")
-        self.upload_button.grid(row=6, column=0, pady=10, padx=10)
+        self.upload_button.grid(row=5, column=1, pady=10, padx=10)
 
-        self.upload_label = customtkinter.CTkLabel(frame, text="Aktuelle Datei:")
-        self.upload_label.grid(row=5, column=0, columnspan=2, pady=10, padx=10, sticky="w")
+        self.upload_label = customtkinter.CTkLabel(frame, text="Aktuelle Datei: Aktuell noch keine Datei vorhanden.", text_color="#F5F5F5")
+        self.upload_label.grid(row=6, column=0, columnspan=2, pady=5, padx=10, sticky="w")
 
-        self.uploaded_file_label = customtkinter.CTkLabel(frame, text="", font=("", 12))
-        self.uploaded_file_label.grid(row=5, column=1, pady=10, padx=10, sticky="w")
+        #self.uploaded_file_label = customtkinter.CTkLabel(frame, text="", font=("", 12))s
+        #self.uploaded_file_label.grid(row=6, column=1, pady=10, padx=10, sticky="w")
 
-        self.play_data_label = customtkinter.CTkButton(frame, text="Abspielen", command=self.play_data)
-        self.play_data_label.grid(row=6, column=1, pady=10, padx=10)
+        self.play_data_button = customtkinter.CTkButton(frame, text="Datei abspielen", command=self.play_data, state= "disabled")
+        self.play_data_button.grid(row=7, column=0, pady=10, padx=10, sticky="w")
 
     def apply_breathing(self):
         selected_pattern = self.breathing_dropdown.get()
@@ -250,8 +254,6 @@ class BreathingPatternSection:
         if selected_pattern == "Standard":
             self.apply_standard()
         elif selected_pattern == "Apnoe":
-            #message = f"Eine Apnoe von 10 Sekunden wird auf dem Lungensimulator abgespielt"
-            #ScrollbarSection.update_text(message)
             self.apply_apnoe()
         elif selected_pattern == "Hypopnoe":
             #message = f"Eine Hypopnoe wird auf dem Lungensimulator abgespielt"
@@ -264,7 +266,7 @@ class BreathingPatternSection:
     def apply_standard(self):
         SettingsSection.ser.write(b"select-2")
 
-    def apply_apnoe(self):
+    def run_apnoe(self):
         print("apnoe läuft")
         SettingsSection.ser.write(b"vol-500")
         time.sleep(0.1)
@@ -273,11 +275,21 @@ class BreathingPatternSection:
         print("10 sekunden um")
         SettingsSection.ser.write(b"vol-0")
         time.sleep(10)
+        print("10 sekunden um")
         SettingsSection.ser.write(b"freq-20")
         time.sleep(0.1)
         SettingsSection.ser.write(b"vol-600")
         time.sleep(1)
         SettingsSection.ser.write(b"freq-13")
+
+    def start_apnoe_thread(self):
+        apnoe_thread = threading.Thread(target=self.run_apnoe)
+        apnoe_thread.start()
+
+    # Rufe diese Funktion auf, um die Apnoe in einem separaten Thread zu starten
+    def apply_apnoe(self):
+        self.start_apnoe_thread()
+        ScrollbarSection.update_text("Eine Apnoe von 10 Sekunden wird auf dem Lungensimulator abgespielt")
 
 
     def apply_hypopnoe(self):
@@ -349,16 +361,14 @@ class BreathingPatternSection:
             time.sleep(0.1)
             data_line = "" + "".join(map(str, self.output_data)) + "!"
             print(type(data_line))
-            SettingsSection.ser.write(data_line.strip().encode())
-            self.upload_update_button_state("disabled")
+            self.play_data_button.configure(state="normal")
         except Exception as e:
-            ScrollbarSection.update_text("Datei konnte nicht hochgeladen werden.")
+            ScrollbarSection.update_text(f"Fehler beim Hochladen der CSV-Datei: {str(e)}")
 
     def play_data(self):
         SettingsSection.ser.write(b"select-1")
 
-    def upload_update_button_state(self, states):
-        self.upload_button.configure(state = states)
+
 
 
 
