@@ -14,7 +14,6 @@ import threading
 import serial
 
 
-
 class SettingsSection:
     ser = None
     breathingCounter = 0
@@ -28,13 +27,13 @@ class SettingsSection:
                         data = SettingsSection.ser.readline().decode('utf-8')
                         print("Empfangene daten: ", (data))
                         ScrollbarSection.update_text(data)
-                        if "Neuer Atemzug" in data:
-                            SettingsSection.breathingCounter += 1
-                            print("Breathing Counter erhöht:", SettingsSection.breathingCounter)
-                        # Hier kannst du je nach empfangenen Daten Aktionen in deiner GUI auslösen
+                        SettingsSection.update_last_uart_data(data)
+                        # if "Neuer Atemzug" in data:
+                        #     #SettingsSection.breathingCounter += 1
+                        #     print("Breathing Counter erhöht:", SettingsSection.breathingCounter)
+
                 except serial.SerialException:
                     print("Fehler beim Lesen der seriellen Schnittstelle")
-
 
         self.settings_label = customtkinter.CTkLabel(frame, text="EINSTELLUNGEN")
         self.settings_label.grid(row=1, column=0, pady=5, padx=10, sticky="w")
@@ -60,6 +59,7 @@ class SettingsSection:
         self.serial_thread = threading.Thread(target=serial_read_thread, daemon=True)
         self.serial_thread.start()
 
+
     def update_com_ports(self):
         # Aktualisiere die Liste der COM-Ports
         self.com_port_options = [port.device for port in comports()]
@@ -79,9 +79,18 @@ class SettingsSection:
                 print(f"Error connecting to {selected_port}: {e}")
                 error_message = f"Fehler bei der Verbindung zu {selected_port}: {e}"
                 ScrollbarSection.update_text(error_message)
+
+    @classmethod
+    def update_last_uart_data(cls, data):
+        if "Neuer Atemzug" in data:
+            cls.last_uart_data = data
+            cls.breathingCounter += 1
+            print("Breathing Counter erhöht:", cls.breathingCounter)
+
+    @classmethod
+    def get_last_uart_data(cls):
+        return cls.breathingCounter
     
-
-
 class ScrollbarSection:
     tk_textbox = None
     def __init__(self, frame):
@@ -89,15 +98,9 @@ class ScrollbarSection:
         self.scrollbar_section_label = customtkinter.CTkLabel(frame, text="STATUS")
         self.scrollbar_section_label.grid(row=1, column=1, padx=10, pady=5, sticky="w")
 
-        #self.update_label = customtkinter.CTkButton(frame, text="Update", command=self.update)
-        #self.update_label.grid(row=2, column=1, padx=10, pady=10, sticky="w")
-
         self.tk_textbox = customtkinter.CTkTextbox(frame, state="disabled", height=435, width=400, fg_color="black")
-        self.tk_textbox.grid(row=3, column=1, padx=10, pady=10, sticky="nsew")
+        self.tk_textbox.grid(row=2, column=1, padx=10, pady=10, sticky="nsew")
 
-    def update(self):
-        print("update")
-        SettingsSection.ser.write(b'U') 
 
     @classmethod
     def update_text(cls, message):
@@ -112,16 +115,14 @@ class ScrollbarSection:
             cleaned_message = remove_null_bytes(message)
 
             current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            formatted_message = f"\n{current_datetime}: {cleaned_message}\n"
 
-            print(f"Debug: formatted message: {repr(formatted_message)}")
+            if "Neuer Atemzug " not in cleaned_message:
+                formatted_message = f"\n{current_datetime}: {cleaned_message}\n"
+                print(f"Debug: formatted message: {repr(formatted_message)}")
+                cls.tk_textbox.insert(tk.END, formatted_message)
+                cls.tk_textbox.see(tk.END)
 
-            cls.tk_textbox.insert(tk.END, formatted_message)
-            cls.tk_textbox.see(tk.END)
-            cls.tk_textbox.configure(state=tk.DISABLED)
-
-
-
+        cls.tk_textbox.configure(state=tk.DISABLED)
 
 class ControlSection:
     def __init__(self, frame):
@@ -143,10 +144,12 @@ class ControlSection:
     def start_action(self):
         print("start")
         SettingsSection.ser.write(b'breathe')
+        BreathingPatternSection.button_start_state = True
 
     def pause_action(self):
         print("pause")
         SettingsSection.ser.write(b'pause') 
+        BreathingPatternSection.button_start_state = False
         
 
     def create_frequency_widgets(self, frame):
@@ -207,9 +210,10 @@ class ControlSection:
         SettingsSection.ser.write(f"vol-{value}".encode())
 
 class BreathingPatternSection:
-
     def __init__(self, frame):
         self.processed_data = []
+        self.volumes = [600, 500, 400, 300, 200, 100, 0, 100, 200, 300, 400, 500, 600]
+
         self.breathing_label = customtkinter.CTkLabel(master=frame, text="SIMULATION")
         self.breathing_label.grid(row=1, column=0, pady=5, padx=10, sticky="w")
 
@@ -236,14 +240,11 @@ class BreathingPatternSection:
         self.data_button = customtkinter.CTkButton(frame, text="Datei auswählen", command=self.choose_data)
         self.data_button.grid(row=5, column=0, pady=10, padx=10, sticky="w")
         
-        self.upload_button = customtkinter.CTkButton(frame, text="Hochladen", command=self.upload_data, state="normal")
+        self.upload_button = customtkinter.CTkButton(frame, text="Hochladen", command=self.upload_data, state="disabled")
         self.upload_button.grid(row=5, column=1, pady=10, padx=10)
 
         self.upload_label = customtkinter.CTkLabel(frame, text="Aktuelle Datei: Aktuell noch keine Datei vorhanden.", text_color="#F5F5F5")
         self.upload_label.grid(row=6, column=0, columnspan=2, pady=5, padx=10, sticky="w")
-
-        #self.uploaded_file_label = customtkinter.CTkLabel(frame, text="", font=("", 12))s
-        #self.uploaded_file_label.grid(row=6, column=1, pady=10, padx=10, sticky="w")
 
         self.play_data_button = customtkinter.CTkButton(frame, text="Datei abspielen", command=self.play_data, state= "disabled")
         self.play_data_button.grid(row=7, column=0, pady=10, padx=10, sticky="w")
@@ -256,12 +257,9 @@ class BreathingPatternSection:
         elif selected_pattern == "Apnoe":
             self.apply_apnoe()
         elif selected_pattern == "Hypopnoe":
-            #message = f"Eine Hypopnoe wird auf dem Lungensimulator abgespielt"
-            #ScrollbarSection.update_text(message)
             self.apply_hypopnoe()
         elif selected_pattern == "Cheyne-Stokes-Atmung":
-            ScrollbarSection.update_text("Die Cheyne-Stokes-Atmung wird abgespielt.")
-            self.apply_cheyne_stokes()
+            self.apply_cheyne_stokes(self.volumes)
 
     def apply_standard(self):
         SettingsSection.ser.write(b"select-2")
@@ -293,7 +291,7 @@ class BreathingPatternSection:
 
 
     def apply_hypopnoe(self):
-        print("hypopnoe öäuft")
+        print("hypopnoe läuft")
         SettingsSection.ser.write(b"vol-500")
         time.sleep(0.1)
         SettingsSection.ser.write(b"freq-13")
@@ -305,28 +303,29 @@ class BreathingPatternSection:
         time.sleep(0.1)
         SettingsSection.ser.write(b"vol-500")
 
-    def apply_cheyne_stokes(self):
+    def apply_cheyne_stokes(self, volume_list):
         print("Cheyne-Stokes läuft")
 
         SettingsSection.ser.write(b"vol-550")
         time.sleep(0.1)
         SettingsSection.ser.write(b"freq-13")
 
-        for volume in range(600, -200, -100):
-            while True:
-                uart_data = SettingsSection.ser.readline().decode('utf-8').strip()
-                
-                if uart_data == "Neuer Atemzug":
-                    SettingsSection.ser.write(f"vol-{volume}".encode())
-                    break  # Die While-Schleife verlassen und zum nächsten Volumen gehen
-        for volume in range(0, 600, 100):
-            while True:
-                uart_data = SettingsSection.ser.readline().decode('utf-8').strip()
-                
-                if uart_data == "Neuer Atemzug":
-                    SettingsSection.ser.write(f"vol-{volume}".encode())
-                    break  
-        ScrollbarSection.update_text("Die Cheyne-Stokes-Atmung ist beendet.")
+        def check_breath_and_update_volume(index, last_counter):
+            current_counter = SettingsSection.breathingCounter
+
+            if current_counter > last_counter:
+                SettingsSection.ser.write(f"vol-{volume_list[index]}".encode())
+                if index + 1 < len(volume_list):
+                    # Verzögerte Ausführung durch threading.Timer
+                    threading.Timer(0.1, check_breath_and_update_volume, (index + 1, current_counter)).start()
+                else:
+                    ScrollbarSection.update_text("Die Cheyne-Stokes-Atmung ist beendet.")
+            else:
+                # Warte 100 Millisekunden und rufe die Funktion erneut auf
+                threading.Timer(0.1, check_breath_and_update_volume, (index, last_counter)).start()
+
+        # Starte den Timer für die asynchrone Ausführung der Funktion
+        threading.Timer(1.0, check_breath_and_update_volume, (0, SettingsSection.breathingCounter)).start()
 
 
     def choose_data(self):
@@ -338,7 +337,7 @@ class BreathingPatternSection:
                 self.upload_label.configure(text=f"Aktuelle Datei: {file_name}")
                 if file_path:
                     self.process_csv(file_path)
-
+    
     def process_csv(self, file_path):
         try:
             self.output_data= []
@@ -352,8 +351,10 @@ class BreathingPatternSection:
                 # Zusätzliches: Daten gemäß den Anforderungen ausgeben
                 self.output_data = ';'.join(self.processed_data)
                 print(f"Output Data: {self.output_data}!")
+            self.upload_button.configure(state="normal")
         except Exception as e:
             print(f"Fehler beim Verarbeiten der CSV-Datei: {str(e)}")
+            ScrollbarSection.update_text("Fehler beim Verarbeiten der CSV-Datei")
 
     def upload_data(self):
         try:
@@ -361,6 +362,7 @@ class BreathingPatternSection:
             time.sleep(0.1)
             data_line = "" + "".join(map(str, self.output_data)) + "!"
             print(type(data_line))
+            SettingsSection.ser.write(data_line.strip().encode())
             self.play_data_button.configure(state="normal")
         except Exception as e:
             ScrollbarSection.update_text(f"Fehler beim Hochladen der CSV-Datei: {str(e)}")
