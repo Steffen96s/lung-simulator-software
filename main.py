@@ -10,42 +10,49 @@ import serial
 #from scrollbar_section import ScrollbarSection
 #from breathing_pattern_section import BreathingPatternSection
 
-customtkinter.set_appearance_mode("dark")
-customtkinter.set_default_color_theme("dark-blue")
+def create_main_gui():
 
-root = customtkinter.CTk()
-root.title("Lungensimulator Software")
-root.resizable(False, False)
+    customtkinter.set_appearance_mode("dark")
+    customtkinter.set_default_color_theme("dark-blue")
 
-# Create the main frame
-main_frame = customtkinter.CTkFrame(master=root)
-main_frame.pack(fill="both", expand=False)
+    root = customtkinter.CTk()
+    root.title("Lungensimulator Software")
+    root.resizable(False, False)
 
-# Create left and right frames within the main frame
-left_frame = customtkinter.CTkFrame(master=main_frame, fg_color="SystemTransparent")
-left_frame.pack(fill="both", expand=False, side="left")
+    # Create the main frame
+    main_frame = customtkinter.CTkFrame(master=root)
+    main_frame.pack(fill="both", expand=False)
 
-right_frame = customtkinter.CTkFrame(master=main_frame, fg_color="SystemTransparent")
-right_frame.pack(fill="both", expand=False, side="right")
+    # Create left and right frames within the main frame
+    left_frame = customtkinter.CTkFrame(master=main_frame, fg_color="SystemTransparent")
+    left_frame.pack(fill="both", expand=False, side="left")
 
-settings_section_frame = customtkinter.CTkFrame(left_frame, fg_color="#333333")
-settings_section_frame.grid(row=1, column=0, padx=10, pady=10, sticky="w")
-settings_section = SettingsSection(settings_section_frame)
+    right_frame = customtkinter.CTkFrame(master=main_frame, fg_color="SystemTransparent")
+    right_frame.pack(fill="both", expand=False, side="right")
 
-control_section_frame = customtkinter.CTkFrame(right_frame, fg_color="#333333")
-control_section_frame.grid(row=1, column=0, padx=10, pady=10)
-control_section = ControlSection(control_section_frame)
+    settings_section_frame = customtkinter.CTkFrame(left_frame, fg_color="#333333")
+    settings_section_frame.grid(row=1, column=0, padx=10, pady=10, sticky="w")
+    settings_section = SettingsSection(settings_section_frame)
 
-scrollbar_section_frame = customtkinter.CTkFrame(left_frame, fg_color="#333333")
-scrollbar_section_frame.grid(row=2, column=0, padx=10, pady=10)
-scrollbar_section = ScrollbarSection(scrollbar_section_frame)
+    control_section_frame = customtkinter.CTkFrame(right_frame, fg_color="#333333")
+    control_section_frame.grid(row=1, column=0, padx=10, pady=10)
+    control_section = ControlSection(control_section_frame)
+    ControlSection.volume_apply_button = control_section.volume_apply_button
 
-breathing_pattern_frame = customtkinter.CTkFrame(right_frame, fg_color="#333333")
-breathing_pattern_frame.grid(row=2, column=0, padx=10, pady=10)
-breathing_pattern_section = BreathingPatternSection(breathing_pattern_frame)
+    scrollbar_section_frame = customtkinter.CTkFrame(left_frame, fg_color="#333333")
+    scrollbar_section_frame.grid(row=2, column=0, padx=10, pady=10)
+    scrollbar_section = ScrollbarSection(scrollbar_section_frame)
 
-ScrollbarSection.tk_textbox = scrollbar_section.tk_textbox
-SettingsSection.ser = settings_section.ser
-SettingsSection.breathingCounter = settings_section.breathingCounter
+    breathing_pattern_frame = customtkinter.CTkFrame(right_frame, fg_color="#333333")
+    breathing_pattern_frame.grid(row=2, column=0, padx=10, pady=10)
+    breathing_pattern_section = BreathingPatternSection(breathing_pattern_frame)
 
-root.mainloop()
+    ScrollbarSection.tk_textbox = scrollbar_section.tk_textbox
+    SettingsSection.ser = settings_section.ser
+    SettingsSection.breathingCounter = settings_section.breathingCounter
+
+    return root, control_section, breathing_pattern_section
+
+if __name__ == "__main__":
+    root, control_section, breathing_pattern_section = create_main_gui()
+    root.mainloop()

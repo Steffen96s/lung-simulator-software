@@ -125,51 +125,53 @@ class ScrollbarSection:
         cls.tk_textbox.configure(state=tk.DISABLED)
 
 class ControlSection:
+    volume_apply_button = None
     def __init__(self, frame):
         self.controlling_label = customtkinter.CTkLabel(master=frame, text="STEUERUNG")
         self.controlling_label.grid(row=1, column=0, pady=5, padx=10, sticky="w")
-
         self.start_button = customtkinter.CTkButton(master=frame, text="Start", command=self.start_action)
         self.start_button.grid(row=2, column=0, padx=10, pady=10)
-
         self.pause_button = customtkinter.CTkButton(master=frame, text="Stop", command=self.pause_action)
         self.pause_button.grid(row=2, column=1, padx=10, pady=10)
-
         self.placeholder = customtkinter.CTkLabel(frame, text="")
         self.placeholder.grid(row=2, column=3, padx=30)
-
-        self.create_frequency_widgets(frame)
-        self.create_volume_widgets(frame)
+        self.frequency_label = customtkinter.CTkLabel(frame, text="Atemfrequenz", text_color="grey")
+        self.frequency_label.grid(row=6, column=0, columnspan=2, padx=10, sticky="w")
+        self.frequency_slider = customtkinter.CTkSlider(
+            frame,
+            to=25,
+            from_=6,
+            command=self.frequency_slider_changed,
+            number_of_steps=19
+        )
+        self.frequency_slider.grid(row=7, columnspan=3, pady=10, sticky="w", padx=8)
+        self.current_value_label = customtkinter.CTkLabel(frame, text="", font=("", 16))
+        self.current_value_label.grid(row=7, column=1, padx=20, sticky="e")
+        self.frequency_apply_button = customtkinter.CTkButton(frame, text="Frequenz anwenden", command=self.apply_frequency, font=("",12), height=24)
+        self.frequency_apply_button.grid(row=8, column=0, padx=10, pady=10, sticky="w")
+        self.volume_label = customtkinter.CTkLabel(frame, text="Atemvolumen", text_color="grey")
+        self.volume_label.grid(row=9, column=0, columnspan=2, padx=10, sticky="w")
+        max_volume = 800
+        self.volume_slider = customtkinter.CTkSlider(
+            frame,
+            to=int(max_volume * 0.92),
+            from_=0,
+            number_of_steps=int(max_volume * 0.92),
+            command=self.volume_slider_changed,
+        )
+        self.volume_slider.grid(row=10, columnspan=2, pady=10, sticky="w", padx=8)
+        self.current_volume_label = customtkinter.CTkLabel(frame, text="", font=("", 16))
+        self.current_volume_label.grid(row=10, column=1, padx=20, sticky="e")
+        self.volume_apply_button = customtkinter.CTkButton(frame, text="Volumen anwenden", command=self.apply_volume, font=("",12), height=24)
+        self.volume_apply_button.grid(row=11, column=0, padx=10, pady=10, sticky="w")
 
     def start_action(self):
         print("start")
         SettingsSection.ser.write(b'breathe')
-        BreathingPatternSection.button_start_state = True
 
     def pause_action(self):
         print("pause")
         SettingsSection.ser.write(b'pause') 
-        BreathingPatternSection.button_start_state = False
-        
-
-    def create_frequency_widgets(self, frame):
-        self.frequency_label = customtkinter.CTkLabel(frame, text="Atemfrequenz", text_color="grey")
-        self.frequency_label.grid(row=6, column=0, columnspan=2, padx=10, sticky="w")
-
-        self.frequency_slider = customtkinter.CTkSlider(
-            frame,
-            to=35,
-            from_=6,
-            command=self.frequency_slider_changed,
-            number_of_steps=29
-        )
-        self.frequency_slider.grid(row=7, columnspan=3, pady=10, sticky="w", padx=8)
-
-        self.current_value_label = customtkinter.CTkLabel(frame, text="", font=("", 16))
-        self.current_value_label.grid(row=7, column=1, padx=20, sticky="e")
-
-        self.frequency_apply_button = customtkinter.CTkButton(frame, text="Frequenz anwenden", command=self.apply_frequency, font=("",12), height=24)
-        self.frequency_apply_button.grid(row=8, column=0, padx=10, pady=10, sticky="w")
 
     def frequency_slider_changed(self, value):
         self.current_value_label.configure(text=f"{value} bpm")
@@ -180,72 +182,47 @@ class ControlSection:
         print("Wert an Microcontroller senden: ", value)
         SettingsSection.ser.write(f"freq-{value}".encode()) 
 
-    def create_volume_widgets(self, frame):
-        max_volume = 800
-        self.volume_label = customtkinter.CTkLabel(frame, text="Atemvolumen", text_color="grey")
-        self.volume_label.grid(row=9, column=0, columnspan=2, padx=10, sticky="w")
-
-        self.volume_slider = customtkinter.CTkSlider(
-            frame,
-            to=int(max_volume * 0.92),
-            from_=0,
-            number_of_steps=int(max_volume * 0.92),
-            command=self.volume_slider_changed,
-        )
-        self.volume_slider.grid(row=10, columnspan=2, pady=10, sticky="w", padx=8)
-
-        self.current_volume_label = customtkinter.CTkLabel(frame, text="", font=("", 16))
-        self.current_volume_label.grid(row=10, column=1, padx=20, sticky="e")
-
-        self.volume_apply_button = customtkinter.CTkButton(frame, text="Volumen anwenden", command=self.apply_volume, font=("",12), height=24)
-        self.volume_apply_button.grid(row=11, column=0, padx=10, pady=10, sticky="w")
-
     def volume_slider_changed(self, value):
         self.current_volume_label.configure(text=f"{value} ml")
         print("Volume changed")
 
     def apply_volume(self):
         value = int(self.volume_slider.get())
-        print("Wert an Microcontroller senden: ", value)
         SettingsSection.ser.write(f"vol-{value}".encode())
 
 class BreathingPatternSection:
     def __init__(self, frame):
+        self.cheyne_stokes_active = False
+        self.apnoe_active = False
+        self.hypopnoe_active = False
         self.processed_data = []
-        self.volumes = [600, 500, 400, 300, 200, 100, 0, 100, 200, 300, 400, 500, 600]
-
+        self.volumes = [600, 500, 400, 300, 200, 100, 0, 0, 100, 200, 300, 400, 500, 600]
+        self.apnoe_volumes = [500, 500, 0, 0, 0, 650, 650]
+        self.hypopnoe_volumes = [500, 500, 400, 250, 250, 250, 400, 500]
         self.breathing_label = customtkinter.CTkLabel(master=frame, text="SIMULATION")
         self.breathing_label.grid(row=1, column=0, pady=5, padx=10, sticky="w")
-
         self.placeholder_label1 = customtkinter.CTkLabel(frame, text="Atemmuster", text_color="grey")
         self.placeholder_label1.grid(row=2, padx=10, sticky="w")
-
         self.breathing_patterns = ["Standard", "Apnoe", "Hypopnoe", "Cheyne-Stokes-Atmung"]  # Beispieloptionen
         self.selected_breathing_pattern = customtkinter.StringVar()
-
         self.breathing_dropdown = customtkinter.CTkOptionMenu(
             frame,
             width=200,
             variable=self.selected_breathing_pattern,
             values=self.breathing_patterns
         )
+        self.selected_breathing_pattern.set("Standard")
         self.breathing_dropdown.grid(row=3, column=0, padx=10, pady=10, sticky="w")
-
         self.apply_breathing_button = customtkinter.CTkButton(frame, text="Anwenden", command=self.apply_breathing)
         self.apply_breathing_button.grid(row=3, column=1, padx=10, pady=10, sticky="w")
-
         self.placeholder_label2 = customtkinter.CTkLabel(frame, text="Datenimport", text_color="grey")
         self.placeholder_label2.grid(row=4, padx=10, sticky="w")
-
         self.data_button = customtkinter.CTkButton(frame, text="Datei auswählen", command=self.choose_data)
         self.data_button.grid(row=5, column=0, pady=10, padx=10, sticky="w")
-        
         self.upload_button = customtkinter.CTkButton(frame, text="Hochladen", command=self.upload_data, state="disabled")
         self.upload_button.grid(row=5, column=1, pady=10, padx=10)
-
         self.upload_label = customtkinter.CTkLabel(frame, text="Aktuelle Datei: Aktuell noch keine Datei vorhanden.", text_color="#F5F5F5")
         self.upload_label.grid(row=6, column=0, columnspan=2, pady=5, padx=10, sticky="w")
-
         self.play_data_button = customtkinter.CTkButton(frame, text="Datei abspielen", command=self.play_data, state= "disabled")
         self.play_data_button.grid(row=7, column=0, pady=10, padx=10, sticky="w")
 
@@ -255,78 +232,110 @@ class BreathingPatternSection:
         if selected_pattern == "Standard":
             self.apply_standard()
         elif selected_pattern == "Apnoe":
-            self.apply_apnoe()
+            self.apply_apnoe(self.apnoe_volumes)
         elif selected_pattern == "Hypopnoe":
-            self.apply_hypopnoe()
+            self.apply_hypopnoe(self.hypopnoe_volumes)
         elif selected_pattern == "Cheyne-Stokes-Atmung":
             self.apply_cheyne_stokes(self.volumes)
 
     def apply_standard(self):
         SettingsSection.ser.write(b"select-2")
+        self.stop_cheyne_stokes()  
+        self.stop_apnoe() 
+        self.stop_hypopnoe()
+        ScrollbarSection.update_text("Atemmuster Standard wird abgespielt.") 
+        ControlSection.volume_apply_button.configure(state="normal")
 
-    def run_apnoe(self):
-        print("apnoe läuft")
-        SettingsSection.ser.write(b"vol-500")
-        time.sleep(0.1)
-        SettingsSection.ser.write(b"freq-13")
-        time.sleep(10)
-        print("10 sekunden um")
-        SettingsSection.ser.write(b"vol-0")
-        time.sleep(10)
-        print("10 sekunden um")
-        SettingsSection.ser.write(b"freq-20")
-        time.sleep(0.1)
-        SettingsSection.ser.write(b"vol-600")
-        time.sleep(1)
-        SettingsSection.ser.write(b"freq-13")
+    def apply_apnoe(self, volume_list_apnoe):
+        if not self.apnoe_active:
+            self.apnoe_active = True
+            ControlSection.volume_apply_button.configure(state="disabled")
+            self.stop_cheyne_stokes() 
+            self.stop_hypopnoe() 
+            ScrollbarSection.update_text("Atemmuster Apnoe wird abgespielt.")
 
-    def start_apnoe_thread(self):
-        apnoe_thread = threading.Thread(target=self.run_apnoe)
-        apnoe_thread.start()
+            # Event für das Stop-Signal
+            self.stop_apnoe_event = threading.Event()
+            # Starte den Thread für die automatische Wiederholung
+            self.apnoe_thread = threading.Thread(target=self.check_apnoe_breath_and_update_volume, args=(volume_list_apnoe,))
+            self.apnoe_thread.start()
 
-    # Rufe diese Funktion auf, um die Apnoe in einem separaten Thread zu starten
-    def apply_apnoe(self):
-        self.start_apnoe_thread()
-        ScrollbarSection.update_text("Eine Apnoe von 10 Sekunden wird auf dem Lungensimulator abgespielt")
+    def check_apnoe_breath_and_update_volume(self, volume_list_apnoe):
+        while not self.stop_apnoe_event.is_set():
+            for volume in volume_list_apnoe:
+                SettingsSection.ser.write(f"vol-{volume}".encode())
+                time.sleep(0.1)
 
+                current_counter = SettingsSection.breathingCounter
+                while current_counter == SettingsSection.breathingCounter and not self.stop_apnoe_event.is_set():
+                    time.sleep(0.1)
 
-    def apply_hypopnoe(self):
-        print("hypopnoe läuft")
-        SettingsSection.ser.write(b"vol-500")
-        time.sleep(0.1)
-        SettingsSection.ser.write(b"freq-13")
-        time.sleep(10)
-        print("10 sekunden um")
-        SettingsSection.ser.write(b"vol-200")
-        time.sleep(10)
-        SettingsSection.ser.write(b"freq-13")
-        time.sleep(0.1)
-        SettingsSection.ser.write(b"vol-500")
+    def stop_apnoe(self):
+        if self.apnoe_active:
+            # Setze das Stop-Signal
+            self.stop_apnoe_event.set()
+            self.apnoe_active = False
+
+    def apply_hypopnoe(self, volume_list_hypopnoe):
+        if not self.hypopnoe_active:
+            self.hypopnoe_active = True
+            ControlSection.volume_apply_button.configure(state="disabled")
+            self.stop_cheyne_stokes()
+            self.stop_apnoe()  
+            ScrollbarSection.update_text("Atemmuster Hypopnoe wird abgespielt.")
+
+            # Event für das Stop-Signal
+            self.stop_hypopnoe_event = threading.Event()
+            # Starte den Thread für die automatische Wiederholung
+            self.hypopnoe_thread = threading.Thread(target=self.check_hypopnoe_breath_and_update_volume, args=(volume_list_hypopnoe,))
+            self.hypopnoe_thread.start()
+
+    def check_hypopnoe_breath_and_update_volume(self, volume_list_hypopnoe):
+        while not self.stop_hypopnoe_event.is_set():
+            for volume in volume_list_hypopnoe:
+                SettingsSection.ser.write(f"vol-{volume}".encode())
+                time.sleep(0.1)
+
+                current_counter = SettingsSection.breathingCounter
+                while current_counter == SettingsSection.breathingCounter and not self.stop_hypopnoe_event.is_set():
+                    time.sleep(0.1)
+
+    def stop_hypopnoe(self):
+        if self.hypopnoe_active:
+            # Setze das Stop-Signal
+            self.stop_hypopnoe_event.set()
+            self.hypopnoe_active = False
 
     def apply_cheyne_stokes(self, volume_list):
-        print("Cheyne-Stokes läuft")
+        if not self.cheyne_stokes_active:
+            self.cheyne_stokes_active = True
+            ControlSection.volume_apply_button.configure(state="disabled")
+            self.stop_apnoe() 
+            self.stop_hypopnoe()
+            print("Cheyne-Stokes läuft")
+            ScrollbarSection.update_text("Atemmuster Cheyne-Stokes-Atmung wird abgespielt.")
 
-        SettingsSection.ser.write(b"vol-550")
-        time.sleep(0.1)
-        SettingsSection.ser.write(b"freq-13")
+            # Event für das Stop-Signal
+            self.stop_cheyne_stokes_event = threading.Event()
+            # Starte den Thread für die automatische Wiederholung
+            self.cheyne_stokes_thread = threading.Thread(target=self.check_breath_and_update_volume, args=(volume_list,))
+            self.cheyne_stokes_thread.start()
 
-        def check_breath_and_update_volume(index, last_counter):
-            current_counter = SettingsSection.breathingCounter
+    def check_breath_and_update_volume(self, volume_list):
+        while not self.stop_cheyne_stokes_event.is_set():
+            for volume in volume_list:
+                SettingsSection.ser.write(f"vol-{volume}".encode())
+                time.sleep(0.1)
 
-            if current_counter > last_counter:
-                SettingsSection.ser.write(f"vol-{volume_list[index]}".encode())
-                if index + 1 < len(volume_list):
-                    # Verzögerte Ausführung durch threading.Timer
-                    threading.Timer(0.1, check_breath_and_update_volume, (index + 1, current_counter)).start()
-                else:
-                    ScrollbarSection.update_text("Die Cheyne-Stokes-Atmung ist beendet.")
-            else:
-                # Warte 100 Millisekunden und rufe die Funktion erneut auf
-                threading.Timer(0.1, check_breath_and_update_volume, (index, last_counter)).start()
+                current_counter = SettingsSection.breathingCounter
+                while current_counter == SettingsSection.breathingCounter and not self.stop_cheyne_stokes_event.is_set():
+                    time.sleep(0.1)
 
-        # Starte den Timer für die asynchrone Ausführung der Funktion
-        threading.Timer(1.0, check_breath_and_update_volume, (0, SettingsSection.breathingCounter)).start()
-
+    def stop_cheyne_stokes(self):
+        if self.cheyne_stokes_active:
+            # Setze das Stop-Signal
+            self.stop_cheyne_stokes_event.set()
+            self.cheyne_stokes_active = False
 
     def choose_data(self):
         file_path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
