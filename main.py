@@ -46,6 +46,8 @@ def create_main_gui():
     breathing_pattern_frame = customtkinter.CTkFrame(right_frame, fg_color="#333333")
     breathing_pattern_frame.grid(row=2, column=0, padx=10, pady=10)
     breathing_pattern_section = BreathingPatternSection(breathing_pattern_frame)
+    BreathingPatternSection.upload_button = breathing_pattern_section.upload_button
+    BreathingPatternSection.play_data_button = breathing_pattern_section.play_data_button
 
     ScrollbarSection.tk_textbox = scrollbar_section.tk_textbox
     SettingsSection.ser = settings_section.ser
