@@ -43,6 +43,7 @@ class SettingsSection:
             dynamic_resizing=False,
         )
         self.com_ports_dropdown.grid(row=2, column=0, padx=10, pady=10)
+        self.com_ports_dropdown.set("Portauswahl")
         self.setting_button = customtkinter.CTkButton(master=frame, text="Verbinden", command=self.connect)
         self.setting_button.grid(row=2, column=1, padx=10)
         self.placeholdder = customtkinter.CTkLabel(frame, text="", width=100)
@@ -136,7 +137,7 @@ class ControlSection:
             #to=int(max_volume * 0.92),
             to=710,
             from_=0,
-            number_of_steps=int(max_volume * 0.92),
+            number_of_steps=710,
             command=self.volume_slider_changed,
         )
         self.volume_slider.grid(row=10, columnspan=2, pady=10, sticky="w", padx=8)
@@ -260,17 +261,22 @@ class BreathingPatternSection:
         selected_pattern = self.breathing_dropdown.get()
         print(f"Applying Breathing Pattern: {selected_pattern}")
         if selected_pattern == "Standard":
+            self.play_data_button.configure(state="normal")
             self.apply_standard()
             self.modi_label.configure(text="Aktueller Atemmodus: Standard")
+            self.breathing_dropdown.configure(values=["Standard", "Apnoe", "Hypopnoe", "Cheyne-Stokes-Atmung"])
         elif selected_pattern == "Apnoe":
+            self.play_data_button.configure(state="disabled")
             SettingsSection.ser.write(b"freq-12")
             self.apply_apnoe(self.apnoe_volumes)
             self.modi_label.configure(text="Aktueller Atemmodus: Apnoe")
         elif selected_pattern == "Hypopnoe":
+            self.play_data_button.configure(state="disabled")
             SettingsSection.ser.write(b"freq-12")
             self.apply_hypopnoe(self.hypopnoe_volumes)
             self.modi_label.configure(text="Aktueller Atemmodus: Hypopnoe")
         elif selected_pattern == "Cheyne-Stokes-Atmung":
+            self.play_data_button.configure(state="disabled")
             SettingsSection.ser.write(b"freq-12")
             self.apply_cheyne_stokes(self.volumes)
             self.modi_label.configure(text="Aktueller Atemmodus: Cheyne-Stokes")
@@ -405,6 +411,10 @@ class BreathingPatternSection:
     def play_data(self):
         self.modi_label.configure(text="Aktueller Atemmodus: Dateiwiedergabe")
         SettingsSection.ser.write(b"select-1")
+        self.selected_breathing_pattern.set("Standard")
+        self.breathing_dropdown.configure(values=["Standard"])
+
+
 
 
 
