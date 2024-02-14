@@ -261,7 +261,8 @@ class BreathingPatternSection:
         selected_pattern = self.breathing_dropdown.get()
         print(f"Applying Breathing Pattern: {selected_pattern}")
         if selected_pattern == "Standard":
-            self.play_data_button.configure(state="normal")
+            if upload_data_check == True:
+                self.play_data_button.configure(state="normal")
             self.apply_standard()
             self.modi_label.configure(text="Aktueller Atemmodus: Standard")
             self.breathing_dropdown.configure(values=["Standard", "Apnoe", "Hypopnoe", "Cheyne-Stokes-Atmung"])
@@ -401,7 +402,7 @@ class BreathingPatternSection:
             data_line = "" + "".join(map(str, self.output_data)) + "!"
             print(type(data_line))
             SettingsSection.ser.write(data_line.strip().encode())
-            self.play_data_button.configure(state="normal")
+            #self.play_data_button.configure(state="normal")
             self.upload_button.configure(state="disabled")
             self.data_button.configure(state="disabled")
             upload_data_check = True
